@@ -17,11 +17,11 @@ class Model(nn.Module):
         
         self.vitstr = create_vitstr(model_name=self.opts.transformer, num_classes=self.opts.num_classes)
     
-    def forward(self, inputs: torch.Tensor):
+    def forward(self, inputs: torch.Tensor, seqlen: int = 25):
         if self.transformation is not None:
             inputs = self.transformation(inputs)
         
-        prediction = self.vitstr(inputs)
+        prediction = self.vitstr(inputs, seqlen=seqlen)
         return prediction
 
 

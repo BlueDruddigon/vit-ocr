@@ -10,4 +10,4 @@ vit = create_vitstr('vit_t_16', weights=None, num_classes=96).cuda()
 vit.load_state_dict(vit.custom_load_state_dict(state_dict))
 ckpt = vit.state_dict()
 ckpt = { f'module.vitstr.{k}': v for k, v in ckpt.items() }
-torch.save(vit.state_dict(), './pretrained/vit_t_16.pth')
+torch.save(ckpt, './pretrained/vit_t_16.pth')
