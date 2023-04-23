@@ -124,9 +124,9 @@ def get_args(is_train=True):
     parser.add_argument('--data_filtering_off', action='store_true', help='for data_filtering_off mode')
     """ Model Architecture """
     choices = [
-      'vitstr_tiny_patch16_224',
-      'vitstr_small_patch16_224',
-      'vitstr_base_patch16_224',
+      'vit_t_16',
+      'vit_s_16',
+      'vit_b_16',
     ]
     parser.add_argument('--transformer', default=choices[0], help='Which vit/deit transformer model', choices=choices)
     parser.add_argument('--transformation', type=str, default=None, help='Transformation stage. None|TPS')
