@@ -1,0 +1,6 @@
+validators==0.18.2
+lmdb==1.2.1
+pillow>=8.3.2
+nltk>=3.6.4
+natsort==7.1.0
+wand==0.6.6
