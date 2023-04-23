@@ -1,9 +1,9 @@
-from .vit import *
+from .vit import VisionTransformer, vit_b_16, vit_s_16, vit_t_16
 
 model_maps = {
-  'vitstr_tiny_patch16_224': vit_t_16,
-  'vitstr_small_patch16_224': vit_s_16,
-  'vitstr_base_patch16_224': vit_b_16,
+  'vit_t_16': vit_t_16,
+  'vit_s_16': vit_s_16,
+  'vit_b_16': vit_b_16,
 }
 
 

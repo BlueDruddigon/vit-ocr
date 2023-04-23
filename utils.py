@@ -98,16 +98,15 @@ def get_args(is_train=True):
     parser.add_argument('--rho', type=float, default=0.95, help='decay rate rho for Adadelta. default=0.95')
     parser.add_argument('--eps', type=float, default=1e-8, help='eps for Adadelta. default=1e-8')
     parser.add_argument('--grad_clip', type=float, default=5, help='gradient clipping value. default=5')
-    parser.add_argument('--baiduCTC', action='store_true', help='for data_filtering_off mode')
     """ Data processing """
     parser.add_argument(
       '--select_data',
       type=str,
-      default='MJ-ST',
+      default='/',
       help='select training data (default is MJ-ST, which means MJ and ST used as training data)'
     )
     parser.add_argument(
-      '--batch_ratio', type=str, default='0.5-0.5', help='assign ratio for each selected data in the batch'
+      '--batch_ratio', type=str, default='1.0', help='assign ratio for each selected data in the batch'
     )
     parser.add_argument(
       '--total_data_usage_ratio',
@@ -130,7 +129,7 @@ def get_args(is_train=True):
       'vitstr_base_patch16_224',
     ]
     parser.add_argument('--transformer', default=choices[0], help='Which vit/deit transformer model', choices=choices)
-    parser.add_argument('--transformation', type=str, required=True, help='Transformation stage. None|TPS')
+    parser.add_argument('--transformation', type=str, default=None, help='Transformation stage. None|TPS')
     parser.add_argument('--num_fiducial', type=int, default=20, help='number of fiducial points of TPS-STN')
     parser.add_argument('--input_channel', type=int, default=1, help='the number of input channel of Feature extractor')
     parser.add_argument(

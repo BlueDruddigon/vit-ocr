@@ -52,7 +52,7 @@ def train(opt):
     """ model configuration """
     if opt.transformer:
         converter = TokenLabelConverter(opt)
-    opt.num_class = len(converter.character)
+    opt.num_classes = len(converter.character)
     
     if opt.rgb:
         opt.input_channel = 3
