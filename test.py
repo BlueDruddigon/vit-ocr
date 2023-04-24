@@ -104,7 +104,7 @@ def validation(model, criterion, evaluation_loader, converter, opt):
         target = converter.encode(labels)
         
         start_time = time.time()
-        preds = model(image, text=target, seqlen=converter.batch_max_length)
+        preds = model(image, seqlen=converter.batch_max_length)
         _, preds_index = preds.topk(1, dim=-1, largest=True, sorted=True)
         preds_index = preds_index.view(-1, converter.batch_max_length)
         forward_time = time.time() - start_time

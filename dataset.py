@@ -311,7 +311,7 @@ class DataAugment(object):
                 self.augs = [self.geometry]
                 self.isbaseline_aug = True
         
-        self.scale = False if opt.Transformer else True
+        self.scale = False
     
     def __call__(self, img):
         img = img.resize((self.opt.imgW, self.opt.imgH), Image.BICUBIC)
