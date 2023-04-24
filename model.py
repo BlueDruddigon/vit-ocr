@@ -15,7 +15,7 @@ class Model(nn.Module):
             print('No Transformation module specified')
             self.transformation = None
         
-        self.vitstr = create_vitstr(model_name=self.opts.transformer, num_classes=self.opts.num_classes)
+        self.vit = create_vitstr(model_name=self.opts.transformer, num_classes=self.opts.num_classes)
     
     def forward(self, inputs: torch.Tensor, seqlen: int = 25):
         if self.transformation is not None:
