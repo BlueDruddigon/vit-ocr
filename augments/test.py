@@ -3,7 +3,7 @@ import os
 
 from PIL import Image
 
-from .blur import DefocusBlur, GaussianBlur, GlassBlur, MotionBlur, ZoomBlur
+from .blur import RefocusBlur, GaussianBlur, GlassBlur, MotionBlur, ZoomBlur
 from .camera import Brightness, Contrast, JpegCompression, Pixelate
 from .geometry import Perspective, Rotate, Shrink, TranslateX, TranslateY
 from .noise import GaussianNoise, ImpulseNoise, ShotNoise, SpeckleNoise
@@ -19,26 +19,26 @@ if __name__ == '__main__':
     parser.add_argument('--gray', action='store_true', help='Convert to grayscale 1st')
     opt = parser.parse_args()
     os.makedirs(opt.results, exist_ok=True)
-    
+
     img = Image.open(opt.image)
     img = img.resize((100, 32))
     ops = [
-      Curve(),
-      Rotate(),
-      Perspective(),
-      Distort(),
-      Stretch(),
-      Shrink(),
-      TranslateX(),
-      TranslateY(),
-      VGrid(),
-      HGrid(),
-      Grid(),
-      RectGrid(),
-      EllipseGrid()
+        Curve(),
+        Rotate(),
+        Perspective(),
+        Distort(),
+        Stretch(),
+        Shrink(),
+        TranslateX(),
+        TranslateY(),
+        VGrid(),
+        HGrid(),
+        Grid(),
+        RectGrid(),
+        EllipseGrid()
     ]
     ops.extend([GaussianNoise(), ShotNoise(), ImpulseNoise(), SpeckleNoise()])
-    ops.extend([GaussianBlur(), DefocusBlur(), MotionBlur(), GlassBlur(), ZoomBlur()])
+    ops.extend([GaussianBlur(), RefocusBlur(), MotionBlur(), GlassBlur(), ZoomBlur()])
     ops.extend([Contrast(), Brightness(), JpegCompression(), Pixelate()])
     ops.extend([Fog(), Snow(), Frost(), Rain(), Shadow()])
     ops.extend([Posterize(), Solarize(), Invert(), Equalize(), AutoContrast(), Sharpness(), Color()])

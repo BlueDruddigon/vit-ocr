@@ -2,18 +2,19 @@ import math
 import os
 import re
 import sys
+from typing import List, Union
 
 import lmdb
 import numpy as np
 import six
 import torch
 import torchvision.transforms as transforms
-from natsort import natsorted
 from PIL import Image
+from natsort import natsorted
 from torch._utils import _accumulate
 from torch.utils.data import ConcatDataset, Dataset, Subset
 
-from augments.blur import DefocusBlur, GaussianBlur, GlassBlur, MotionBlur, ZoomBlur
+from augments.blur import RefocusBlur, GaussianBlur, GlassBlur, MotionBlur, ZoomBlur
 from augments.camera import Brightness, Contrast, JpegCompression, Pixelate
 from augments.geometry import Perspective, Rotate, Shrink
 from augments.noise import GaussianNoise, ImpulseNoise, ShotNoise, SpeckleNoise
@@ -36,10 +37,10 @@ class Batch_Balanced_Dataset(object):
         log.write(dashed_line + '\n')
         print(f'dataset_root: {opt.train_data}\nopt.select_data: {opt.select_data}\nopt.batch_ratio: {opt.batch_ratio}')
         log.write(
-          f'dataset_root: {opt.train_data}\nopt.select_data: {opt.select_data}\nopt.batch_ratio: {opt.batch_ratio}\n'
+            f'dataset_root: {opt.train_data}\nopt.select_data: {opt.select_data}\nopt.batch_ratio: {opt.batch_ratio}\n'
         )
         assert len(opt.select_data) == len(opt.batch_ratio)
-        
+
         _AlignCollate = AlignCollate(imgH=opt.imgH, imgW=opt.imgW, keep_ratio_with_pad=opt.PAD, opt=opt)
         self.data_loader_list = []
         self.dataloader_iter_list = []
@@ -61,43 +62,43 @@ class Batch_Balanced_Dataset(object):
             dataset_split = [number_dataset, total_number_dataset - number_dataset]
             indices = range(total_number_dataset)
             _dataset, _ = [
-              Subset(_dataset, indices[offset - length:offset])
-              for offset, length in zip(_accumulate(dataset_split), dataset_split)
+                Subset(_dataset, indices[offset - length:offset])
+                for offset, length in zip(_accumulate(dataset_split), dataset_split)
             ]
             selected_d_log = f'num total samples of {selected_d}: {total_number_dataset} x ' \
-                f'{opt.total_data_usage_ratio} (total_data_usage_ratio) = {len(_dataset)}\n'
+                             f'{opt.total_data_usage_ratio} (total_data_usage_ratio) = {len(_dataset)}\n'
             selected_d_log += f'num samples of {selected_d} per batch: {opt.batch_size} x ' \
-                f'{float(batch_ratio_d)} (batch_ratio) = {_batch_size}'
+                              f'{float(batch_ratio_d)} (batch_ratio) = {_batch_size}'
             print(selected_d_log)
             log.write(selected_d_log + '\n')
             batch_size_list.append(str(_batch_size))
             Total_batch_size += _batch_size
-            
+
             _data_loader = torch.utils.data.DataLoader(
-              _dataset,
-              batch_size=_batch_size,
-              shuffle=True,
-              num_workers=int(opt.workers),
-              collate_fn=_AlignCollate,
-              pin_memory=True
+                _dataset,
+                batch_size=_batch_size,
+                shuffle=True,
+                num_workers=int(opt.workers),
+                collate_fn=_AlignCollate,
+                pin_memory=True
             )
             self.data_loader_list.append(_data_loader)
             self.dataloader_iter_list.append(iter(_data_loader))
-        
+
         Total_batch_size_log = f'{dashed_line}\n'
         batch_size_sum = '+'.join(batch_size_list)
         Total_batch_size_log += f'Total_batch_size: {batch_size_sum} = {Total_batch_size}\n'
         Total_batch_size_log += f'{dashed_line}'
         opt.batch_size = Total_batch_size
-        
+
         print(Total_batch_size_log)
         log.write(Total_batch_size_log + '\n')
         log.close()
-    
+
     def get_batch(self):
         balanced_batch_images = []
         balanced_batch_texts = []
-        
+
         for i, data_loader_iter in enumerate(self.dataloader_iter_list):
             try:
                 image, text = next(data_loader_iter)
@@ -110,13 +111,13 @@ class Batch_Balanced_Dataset(object):
                 balanced_batch_texts += text
             except ValueError:
                 pass
-        
+
         balanced_batch_images = torch.cat(balanced_batch_images, 0)
         return balanced_batch_images, balanced_batch_texts
 
 
-def hierarchical_dataset(root, opt, select_data='/'):
-    """ select_data='/' contains all sub-directory of root directory """
+def hierarchical_dataset(root, opt, select_data: Union[str, List] = '/'):
+    """ select_data='/' contains all subdirectories of root directory """
     dataset_list = []
     dataset_log = f'dataset_root:    {root}\t dataset: {select_data[0]}'
     print(dataset_log)
@@ -128,34 +129,34 @@ def hierarchical_dataset(root, opt, select_data='/'):
                 if selected_d in dirpath:
                     select_flag = True
                     break
-            
+
             if select_flag:
                 dataset = LmdbDataset(dirpath, opt)
                 sub_dataset_log = f'sub-directory:\t/{os.path.relpath(dirpath, root)}\t num samples: {len(dataset)}'
                 print(sub_dataset_log)
                 dataset_log += f'{sub_dataset_log}\n'
                 dataset_list.append(dataset)
-    
+
     concatenated_dataset = ConcatDataset(dataset_list)
-    
+
     return concatenated_dataset, dataset_log
 
 
 class LmdbDataset(Dataset):
     def __init__(self, root, opt):
         super(LmdbDataset, self).__init__()
-        
+
         self.root = root
         self.opt = opt
         self.env = lmdb.open(root, max_readers=32, readonly=True, lock=False, readahead=False, meminit=False)
         if not self.env:
-            print('cannot create lmdb from %s' % (root))
+            print('cannot create lmdb from %s' % root)
             sys.exit(0)
-        
+
         with self.env.begin(write=False) as txn:
             nSamples = int(txn.get('num-samples'.encode()))
             self.nSamples = nSamples
-            
+
             if self.opt.data_filtering_off:
                 # for fast check or benchmark evaluation with no filtering
                 self.filtered_index_list = [index + 1 for index in range(self.nSamples)]
@@ -165,33 +166,33 @@ class LmdbDataset(Dataset):
                     index += 1  # lmdb starts with 1
                     label_key = 'label-%09d'.encode() % index
                     label = txn.get(label_key).decode('utf-8')
-                    
+
                     if len(label) > self.opt.batch_max_length:
                         continue
-                    
+
                     # By default, images containing characters which are not in opt.character are filtered.
                     # You can add [UNK] token to `opt.character` in utils.py instead of this filtering.
                     out_of_char = f'[^{self.opt.character}]'
                     if re.search(out_of_char, label.lower()):
                         continue
-                    
+
                     self.filtered_index_list.append(index)
-                
+
                 self.nSamples = len(self.filtered_index_list)
-    
+
     def __len__(self):
         return self.nSamples
-    
+
     def __getitem__(self, index):
         assert index <= len(self), 'index range error'
         index = self.filtered_index_list[index]
-        
+
         with self.env.begin(write=False) as txn:
             label_key = 'label-%09d'.encode() % index
             label = txn.get(label_key).decode('utf-8')
             img_key = 'image-%09d'.encode() % index
             imgbuf = txn.get(img_key)
-            
+
             buf = six.BytesIO()
             buf.write(imgbuf)
             buf.seek(0)
@@ -200,7 +201,7 @@ class LmdbDataset(Dataset):
                     img = Image.open(buf).convert('RGB')  # for color image
                 else:
                     img = Image.open(buf).convert('L')
-            
+
             except IOError:
                 print(f'Corrupted image for {index}')
                 # make dummy image and dummy label for corrupted image.
@@ -209,15 +210,15 @@ class LmdbDataset(Dataset):
                 else:
                     img = Image.new('L', (self.opt.imgW, self.opt.imgH))
                 label = '[dummy_label]'
-            
+
             if not self.opt.sensitive:
                 label = label.lower()
-            
+
             # We only train and evaluate on alphanumerics (or pre-defined character set in train.py)
             out_of_char = f'[^{self.opt.character}]'
             label = re.sub(out_of_char, '', label)
-        
-        return (img, label)
+
+        return img, label
 
 
 class RawDataset(Dataset):
@@ -230,13 +231,13 @@ class RawDataset(Dataset):
                 ext = ext.lower()
                 if ext == '.jpg' or ext == '.jpeg' or ext == '.png':
                     self.image_path_list.append(os.path.join(dirpath, name))
-        
+
         self.image_path_list = natsorted(self.image_path_list)
         self.nSamples = len(self.image_path_list)
-    
+
     def __len__(self):
         return self.nSamples
-    
+
     def __getitem__(self, index):
         try:
             if self.opt.rgb:
@@ -250,8 +251,8 @@ class RawDataset(Dataset):
                 img = Image.new('RGB', (self.opt.imgW, self.opt.imgH))
             else:
                 img = Image.new('L', (self.opt.imgW, self.opt.imgH))
-        
-        return (img, self.image_path_list[index])
+
+        return img, self.image_path_list[index]
 
 
 def isless(prob=0.5):
@@ -261,28 +262,29 @@ def isless(prob=0.5):
 class DataAugment(object):
     def __init__(self, opt):
         self.opt = opt
-        
+
         if not opt.eval:
             self.process = [Posterize(), Solarize(), Invert(), Equalize(), AutoContrast(), Sharpness(), Color()]
             self.camera = [Contrast(), Brightness(), JpegCompression(), Pixelate()]
-            
+
             self.pattern = [VGrid(), HGrid(), Grid(), RectGrid(), EllipseGrid()]
-            
+
             self.noise = [GaussianNoise(), ShotNoise(), ImpulseNoise(), SpeckleNoise()]
-            self.blur = [GaussianBlur(), DefocusBlur(), MotionBlur(), GlassBlur(), ZoomBlur()]
+            self.blur = [GaussianBlur(), RefocusBlur(), MotionBlur(), GlassBlur(), ZoomBlur()]
             self.weather = [Fog(), Snow(), Frost(), Rain(), Shadow()]
-            
+
             self.noises = [self.blur, self.noise, self.weather]
             self.processes = [self.camera, self.process]
-            
+
             self.warp = [Curve(), Distort(), Stretch()]
             self.geometry = [Rotate(), Perspective(), Shrink()]
-            
+
             self.isbaseline_aug = False
             # rand augment
             if self.opt.isrand_aug:
                 self.augs = [
-                  self.process, self.camera, self.noise, self.blur, self.weather, self.pattern, self.warp, self.geometry
+                    self.process, self.camera, self.noise, self.blur, self.weather, self.pattern, self.warp,
+                    self.geometry
                 ]
             # semantic augment
             elif self.opt.issemantic_aug:
@@ -310,12 +312,12 @@ class DataAugment(object):
                 self.geometry = [Rotate()]
                 self.augs = [self.geometry]
                 self.isbaseline_aug = True
-        
+
         self.scale = False
-    
+
     def __call__(self, img):
         img = img.resize((self.opt.imgW, self.opt.imgH), Image.BICUBIC)
-        
+
         if self.opt.eval or isless(self.opt.intact_prob):
             pass
         elif self.opt.isrand_aug or self.isbaseline_aug:
@@ -323,12 +325,12 @@ class DataAugment(object):
         # individual augment can also be selected
         elif self.opt.issel_aug:
             img = self.sel_aug(img)
-        
+
         img = transforms.ToTensor()(img)
         if self.scale:
             img.sub_(0.5).div_(0.5)
         return img
-    
+
     def rand_aug(self, img):
         augs = np.random.choice(self.augs, self.opt.augs_num, replace=False)
         for aug in augs:
@@ -339,30 +341,30 @@ class DataAugment(object):
                 img = op(img.copy(), mag=mag)
             else:
                 img = op(img, mag=mag)
-        
+
         return img
-    
+
     def sel_aug(self, img):
         prob = 1.
-        
+
         if self.opt.process:
             mag = np.random.randint(0, 3)
             index = np.random.randint(0, len(self.process))
             op = self.process[index]
             img = op(img, mag=mag, prob=prob)
-        
+
         if self.opt.noise:
             mag = np.random.randint(0, 3)
             index = np.random.randint(0, len(self.noise))
             op = self.noise[index]
             img = op(img, mag=mag, prob=prob)
-        
+
         if self.opt.blur:
             mag = np.random.randint(0, 3)
             index = np.random.randint(0, len(self.blur))
             op = self.blur[index]
             img = op(img, mag=mag, prob=prob)
-        
+
         if self.opt.weather:
             mag = np.random.randint(0, 3)
             index = np.random.randint(0, len(self.weather))
@@ -371,37 +373,37 @@ class DataAugment(object):
                 img = op(img.copy(), mag=mag, prob=prob)
             else:
                 img = op(img, mag=mag, prob=prob)
-        
+
         if self.opt.camera:
             mag = np.random.randint(0, 3)
             index = np.random.randint(0, len(self.camera))
             op = self.camera[index]
             img = op(img, mag=mag, prob=prob)
-        
+
         if self.opt.pattern:
             mag = np.random.randint(0, 3)
             index = np.random.randint(0, len(self.pattern))
             op = self.pattern[index]
             img = op(img.copy(), mag=mag, prob=prob)
-        
-        iscurve = False
+
+        is_curve = False
         if self.opt.warp:
             mag = np.random.randint(0, 3)
             index = np.random.randint(0, len(self.warp))
             op = self.warp[index]
             if type(op).__name__ == 'Curve':
-                iscurve = True
+                is_curve = True
             img = op(img, mag=mag, prob=prob)
-        
+
         if self.opt.geometry:
             mag = np.random.randint(0, 3)
             index = np.random.randint(0, len(self.geometry))
             op = self.geometry[index]
             if type(op).__name__ == 'Rotate':
-                img = op(img, iscurve=iscurve, mag=mag, prob=prob)
+                img = op(img, iscurve=is_curve, mag=mag, prob=prob)
             else:
                 img = op(img, mag=mag, prob=prob)
-        
+
         return img
 
 
@@ -410,7 +412,7 @@ class ResizeNormalize(object):
         self.size = size
         self.interpolation = interpolation
         self.toTensor = transforms.ToTensor()
-    
+
     def __call__(self, img):
         img = img.resize(self.size, self.interpolation)
         img = self.toTensor(img)
@@ -424,7 +426,7 @@ class NormalizePAD(object):
         self.max_size = max_size
         self.max_width_half = math.floor(max_size[2] / 2)
         self.PAD_type = PAD_type
-    
+
     def __call__(self, img):
         img = self.toTensor(img)
         img.sub_(0.5).div_(0.5)
@@ -433,7 +435,7 @@ class NormalizePAD(object):
         Pad_img[:, :, :w] = img  # right pad
         if self.max_size[2] != w:  # add border Pad
             Pad_img[:, :, w:] = img[:, :, w - 1].unsqueeze(2).expand(c, h, self.max_size[2] - w)
-        
+
         return Pad_img
 
 
@@ -443,16 +445,16 @@ class AlignCollate(object):
         self.imgW = imgW
         self.keep_ratio_with_pad = keep_ratio_with_pad
         self.opt = opt
-    
+
     def __call__(self, batch):
         batch = filter(lambda x: x is not None, batch)
         images, labels = zip(*batch)
-        
+
         if self.keep_ratio_with_pad:  # same concept with 'Rosetta' paper
             resized_max_w = self.imgW
             input_channel = 3 if images[0].mode == 'RGB' else 1
             transform = NormalizePAD((input_channel, self.imgH, resized_max_w))
-            
+
             resized_images = []
             for image in images:
                 w, h = image.size
@@ -461,16 +463,16 @@ class AlignCollate(object):
                     resized_w = self.imgW
                 else:
                     resized_w = math.ceil(self.imgH * ratio)
-                
+
                 resized_image = image.resize((resized_w, self.imgH), Image.BICUBIC)
                 resized_images.append(transform(resized_image))
-            
+
             image_tensors = torch.cat([t.unsqueeze(0) for t in resized_images], 0)
         else:
             transform = DataAugment(self.opt)
             image_tensors = [transform(image) for image in images]
             image_tensors = torch.cat([t.unsqueeze(0) for t in image_tensors], 0)
-        
+
         return image_tensors, labels
 
 
