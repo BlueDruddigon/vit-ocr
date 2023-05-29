@@ -25,7 +25,7 @@ def benchmark_all_eval(model, criterion, converter, opt):
         # To easily compute the total accuracy of our paper.
         eval_data_list = ['IIIT5k_3000', 'SVT', 'IC03_867', 'IC13_1015', 'IC15_2077', 'SVTP', 'CUTE80']
     else:
-        # The evaluation datasets, dataset order is same with Table 1 in our paper.
+        # The evaluation datasets, dataset order is the same with Table 1 in our paper.
         eval_data_list = [
             'IIIT5k_3000', 'SVT', 'IC03_860', 'IC03_867', 'IC13_857', 'IC13_1015', 'IC15_1811', 'IC15_2077', 'SVTP',
             'CUTE80'

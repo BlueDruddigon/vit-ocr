@@ -34,7 +34,7 @@ def disk(radius, alias_blur=0.1, dtype=np.float32):
     aliased_disk = np.array((X ** 2 + Y ** 2) <= radius ** 2, dtype=dtype)
     aliased_disk /= np.sum(aliased_disk)
     
-    # supersample disk to antialias
+    # super sample disk to antialias
     return cv2.GaussianBlur(aliased_disk, ksize=ksize, sigmaX=alias_blur)
 
 
@@ -42,7 +42,7 @@ def disk(radius, alias_blur=0.1, dtype=np.float32):
 def plasma_fractal(mapsize=256, wibbledecay=3):
     """
     Generate a heightmap using diamond-square algorithm.
-    Return square 2d array, side length 'mapsize', of floats in range 0-255.
+    Return a square 2d array, side length 'mapsize', of floats in range 0-255.
     'mapsize' must be a power of two.
     """
     assert (mapsize & (mapsize - 1) == 0)

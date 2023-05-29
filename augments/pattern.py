@@ -97,7 +97,7 @@ class RectGrid:
             if isellipse:
                 draw.ellipse([(x1, y1), (x2, y2)], width=line_width, outline='black')
             else:
-                draw.rectangle([(x1, y1), (x2, y2)], width=line_width, outline='black')
+                draw.rectangle((x1, y1), (x2, y2), width=line_width, outline='black')
         
         return img
 

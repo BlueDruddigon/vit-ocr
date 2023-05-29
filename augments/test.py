@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 from .blur import RefocusBlur, GaussianBlur, GlassBlur, MotionBlur, ZoomBlur
 from .camera import Brightness, Contrast, JpegCompression, Pixelate
@@ -47,5 +47,5 @@ if __name__ == '__main__':
             filename = type(op).__name__ + "-" + str(mag) + ".png"
             out_img = op(img, mag=mag)
             if opt.gray:
-                out_img = PIL.ImageOps.grayscale(out_img)
+                out_img = ImageOps.grayscale(out_img)
             out_img.save(os.path.join(opt.results, filename))
