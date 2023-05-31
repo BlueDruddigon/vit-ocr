@@ -19,7 +19,7 @@ from augments.camera import Brightness, Contrast, JpegCompression, Pixelate
 from augments.geometry import Perspective, Rotate, Shrink
 from augments.noise import GaussianNoise, ImpulseNoise, ShotNoise, SpeckleNoise
 from augments.pattern import EllipseGrid, Grid, HGrid, RectGrid, VGrid
-from augments.process import AutoContrast, Color, Equalize, Invert, Posterize, Sharpness, Solarize
+from augments.process import AutoContrast, Color, Equalize, Invert, Posterize, Sharpness, Solaris
 from augments.warp import Curve, Distort, Stretch
 from augments.weather import Fog, Frost, Rain, Shadow, Snow
 
@@ -264,7 +264,7 @@ class DataAugment(object):
         self.opt = opt
 
         if not opt.eval:
-            self.process = [Posterize(), Solarize(), Invert(), Equalize(), AutoContrast(), Sharpness(), Color()]
+            self.process = [Posterize(), Solaris(), Invert(), Equalize(), AutoContrast(), Sharpness(), Color()]
             self.camera = [Contrast(), Brightness(), JpegCompression(), Pixelate()]
 
             self.pattern = [VGrid(), HGrid(), Grid(), RectGrid(), EllipseGrid()]

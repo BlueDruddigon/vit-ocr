@@ -4,13 +4,10 @@ from PIL import Image
 
 
 class GaussianNoise:
-    def __init__(self):
-        pass
-    
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return img
-        
+
         b = [.08, 0.1, 0.12]
         if mag < 0 or mag >= len(b):
             index = 0
@@ -24,13 +21,10 @@ class GaussianNoise:
 
 
 class ShotNoise:
-    def __init__(self):
-        pass
-    
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return img
-        
+
         b = [13, 8, 3]
         if mag < 0 or mag >= len(b):
             index = 2
@@ -44,13 +38,10 @@ class ShotNoise:
 
 
 class ImpulseNoise:
-    def __init__(self):
-        pass
-    
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return img
-        
+
         b = [.03, .07, .11]
         if mag < 0 or mag >= len(b):
             index = 0
@@ -63,13 +54,10 @@ class ImpulseNoise:
 
 
 class SpeckleNoise:
-    def __init__(self):
-        pass
-    
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return img
-        
+
         b = [.15, .2, .25]
         if mag < 0 or mag >= len(b):
             index = 0

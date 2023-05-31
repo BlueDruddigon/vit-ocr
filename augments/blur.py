@@ -10,9 +10,6 @@ from .ops import disk, MotionImage
 
 
 class GaussianBlur:
-    def __init__(self):
-        pass
-
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return img
@@ -29,9 +26,6 @@ class GaussianBlur:
 
 
 class RefocusBlur:
-    def __init__(self):
-        pass
-
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return img
@@ -66,9 +60,6 @@ class RefocusBlur:
 
 
 class MotionBlur:
-    def __init__(self):
-        pass
-
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return img
@@ -87,7 +78,7 @@ class MotionBlur:
         img = MotionImage(blob=output.getvalue())
 
         img.motion_blur(radius=c[0], sigma=c[1], angle=np.random.uniform(-45, 45))
-        img = cv2.imdecode(np.fromstring(img.make_blob(), np.uint8), cv2.IMREAD_UNCHANGED)
+        img = cv2.imdecode(np.frombuffer(img.make_blob(), np.uint8), cv2.IMREAD_UNCHANGED)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         img = Image.fromarray(img.astype(np.uint8))
@@ -99,9 +90,6 @@ class MotionBlur:
 
 
 class GlassBlur:
-    def __init__(self):
-        pass
-
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return img
@@ -115,7 +103,7 @@ class GlassBlur:
 
         c = c[index]
 
-        img = np.uint8(gaussian(np.array(img) / 255., sigma=c[0], multichannel=True) * 255)
+        img = np.uint8(gaussian(np.array(img) / 255., sigma=c[0], channel_axis=-1) * 255)
 
         # locally shuffle pixels
         for _ in range(c[2]):
@@ -126,14 +114,11 @@ class GlassBlur:
                     # swap
                     img[h, w], img[h_prime, w_prime] = img[h_prime, w_prime], img[h, w]
 
-        img = np.clip(gaussian(img / 255., sigma=c[0], multichannel=True), 0, 1) * 255
+        img = np.clip(gaussian(img / 255., sigma=c[0], channel_axis=-1), 0, 1) * 255
         return Image.fromarray(img.astype(np.uint8))
 
 
 class ZoomBlur:
-    def __init__(self):
-        pass
-
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return img
