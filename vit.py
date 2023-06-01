@@ -5,18 +5,15 @@ from typing import Any, Callable, List, NamedTuple, Optional
 
 import torch
 import torch.nn as nn
-from torchvision.models._api import Weights, WeightsEnum
 from torchvision.ops.misc import Conv2dNormActivation, MLP
-from torchvision.transforms._presets import ImageClassification
+
+try:
+    from torch.hub import load_state_dict_from_url
+except ImportError:
+    from torch.utils.model_zoo import load_url as load_state_dict_from_url
 
 __all__ = [
     'VisionTransformer',
-    'ViT_T_16_Weights',
-    'ViT_S_16_Weights',
-    'ViT_B_16_Weights',
-    'vit_t_16',
-    'vit_s_16',
-    'vit_b_16',
     'create_vit'
 ]
 
@@ -100,7 +97,7 @@ class EncoderBlock(nn.Module):
         self.mlp = MLPBlock(hidden_dim, mlp_dim, dropout)
 
     def forward(self, inputs: torch.Tensor):
-        assert (inputs.dim() == 3, f'Expected (batch_size, seq_length, hidden_dim) got {inputs.shape}')
+        assert inputs.dim() == 3, f'Expected (batch_size, seq_length, hidden_dim) got {inputs.shape}'
         x = self.ln_1(inputs)
         x, _ = self.self_attention(x, x, x, need_weights=False)
         x = self.dropout(x)
@@ -144,7 +141,7 @@ class Encoder(nn.Module):
         self.ln = norm_layer(hidden_dim)
 
     def forward(self, inputs: torch.Tensor):
-        assert (inputs.dim() == 3, f'Expected (batch_size, seq_length, hidden_dim) got {inputs.shape}')
+        assert inputs.dim() == 3, f'Expected (batch_size, seq_length, hidden_dim) got {inputs.shape}'
         inputs = inputs + self.pos_embedding
         return self.ln(self.layers(self.dropout(inputs)))
 
@@ -162,13 +159,14 @@ class VisionTransformer(nn.Module):
             mlp_dim: int,
             dropout: float = 0.0,
             attention_dropout: float = 0.0,
+            in_channels: int = 3,
             num_classes: int = 1000,
             representation_size: Optional[int] = None,
             norm_layer: Callable[..., torch.nn.Module] = partial(nn.LayerNorm, eps=1e-6),
             conv_stem_configs: Optional[List[ConvStemConfig]] = None,
     ):
         super().__init__()
-        assert (image_size % patch_size == 0, 'Input shape indivisible by patch size!')
+        assert image_size % patch_size == 0, 'Input shape indivisible by patch size!'
         self.image_size = image_size
         self.patch_size = patch_size
         self.hidden_dim = hidden_dim
@@ -182,7 +180,7 @@ class VisionTransformer(nn.Module):
         if conv_stem_configs is not None:
             # As per https://arxiv.org/abs/2106.14881
             seq_proj = nn.Sequential()
-            prev_channels = 3
+            prev_channels = in_channels
             for i, conv_stem_layer_config in enumerate(conv_stem_configs):
                 seq_proj.add_module(
                     f'conv_bn_relu_{i}',
@@ -202,7 +200,7 @@ class VisionTransformer(nn.Module):
             self.conv_proj: nn.Module = seq_proj
         else:
             self.conv_proj = nn.Conv2d(
-                in_channels=1, out_channels=hidden_dim, kernel_size=patch_size, stride=patch_size
+                in_channels=in_channels, out_channels=hidden_dim, kernel_size=patch_size, stride=patch_size
             )
 
         seq_length = (image_size // patch_size) ** 2
@@ -299,8 +297,8 @@ class VisionTransformer(nn.Module):
     def _process_input(self, x: torch.Tensor) -> torch.Tensor:
         n, _, h, w = x.shape
         p = self.patch_size
-        assert (h == self.image_size, f'Wrong image height! Expected {self.image_size} but got {h}!')
-        assert (w == self.image_size, f'Wrong image width! Expected {self.image_size} but got {w}!')
+        assert h == self.image_size, f'Wrong image height! Expected {self.image_size} but got {h}!'
+        assert w == self.image_size, f'Wrong image width! Expected {self.image_size} but got {w}!'
         n_h = h // p
         n_w = w // p
 
@@ -339,14 +337,16 @@ def _vision_transformer(
         num_heads: int,
         hidden_dim: int,
         mlp_dim: int,
-        weights: Optional[WeightsEnum],
-        progress: bool,
         **kwargs: Any,
 ) -> VisionTransformer:
     image_size = kwargs.pop('image_size', 224)
+    num_classes = kwargs.pop('num_classes', 1000)
+    in_channels = kwargs.pop('in_channels', 3)
 
-    model = VisionTransformer(
+    return VisionTransformer(
         image_size=image_size,
+        num_classes=num_classes,
+        in_channels=in_channels,
         patch_size=patch_size,
         num_layers=num_layers,
         num_heads=num_heads,
@@ -355,99 +355,95 @@ def _vision_transformer(
         **kwargs,
     )
 
-    if weights:
-        state_dict = weights.get_state_dict(progress=progress)['model']
-        model.load_state_dict(model.custom_load_state_dict(state_dict))
-        print(f'Loaded weights from {weights.url}')
 
-    return model
-
-
-class ViT_T_16_Weights(WeightsEnum):
-    DEFAULT = Weights(
-        url='https://dl.fbaipublicfiles.com/deit/deit_tiny_patch16_224-a1311bcf.pth',
-        transforms=partial(ImageClassification, crop_size=224),
-        meta={
-            'min_size': (224, 224),
-        },
-    )
-
-
-class ViT_S_16_Weights(WeightsEnum):
-    DEFAULT = Weights(
-        url='https://dl.fbaipublicfiles.com/deit/deit_small_patch16_224-cd65a155.pth',
-        transforms=partial(ImageClassification, crop_size=224),
-        meta={
-            'min_size': (224, 224),
-        },
-    )
-
-
-class ViT_B_16_Weights(WeightsEnum):
-    DEFAULT = Weights(
-        url='https://dl.fbaipublicfiles.com/deit/deit_base_patch16_224-b5f2ef4d.pth',
-        transforms=partial(ImageClassification, crop_size=224),
-        meta={
-            'min_size': (224, 224),
-        },
-    )
-
-
-def vit_t_16(
-        *, weights: Optional[ViT_T_16_Weights] = None, progress: bool = True, **kwargs: Any
+def vit_tiny_patch16_224(
+        *, pretrained: bool = False, progress: bool = True, **kwargs: Any
 ) -> VisionTransformer:
-    weights = ViT_T_16_Weights.verify(weights)
-
-    return _vision_transformer(
+    model = _vision_transformer(
         patch_size=16,
         num_layers=12,
         num_heads=3,
         hidden_dim=192,
         mlp_dim=768,
-        weights=weights,
-        progress=progress,
         **kwargs,
     )
+    if pretrained:
+        checkpoint = load_state_dict_from_url(
+            url='https://github.com/BlueDruddigon/VisTransformer/releases/download/0.1.1/vit_tiny_patch16_224.pth',
+            map_location='cpu',
+            check_hash=True, progress=progress
+        )
+        model.load_state_dict(checkpoint['model'])
+    return model
 
 
-def vit_s_16(
-        *, weights: Optional[ViT_S_16_Weights] = None, progress: bool = True, **kwargs: Any
+def vit_small_patch16_224(
+        *, pretrained: bool = False, progress: bool = True, **kwargs: Any
 ) -> VisionTransformer:
-    weights = ViT_S_16_Weights.verify(weights)
-
-    return _vision_transformer(
+    model = _vision_transformer(
         patch_size=16,
         num_layers=12,
         num_heads=6,
         hidden_dim=384,
         mlp_dim=1536,
-        weights=weights,
-        progress=progress,
         **kwargs,
     )
+    if pretrained:
+        checkpoint = load_state_dict_from_url(
+            url='https://github.com/BlueDruddigon/VisTransformer/releases/download/0.1.1/vit_small_patch16_224.pth',
+            map_location='cpu',
+            check_hash=True, progress=progress
+        )
+        model.load_state_dict(checkpoint['model'])
+    return model
 
 
-def vit_b_16(
-        *, weights: Optional[ViT_B_16_Weights] = None, progress: bool = True, **kwargs: Any
+def vit_base_patch16_224(
+        *, pretrained: bool = False, progress: bool = True, **kwargs: Any
 ) -> VisionTransformer:
-    weights = ViT_B_16_Weights.verify(weights)
-
-    return _vision_transformer(
+    model = _vision_transformer(
         patch_size=16,
         num_layers=12,
         num_heads=12,
         hidden_dim=768,
         mlp_dim=3072,
-        weights=weights,
-        progress=progress,
         **kwargs,
     )
+    if pretrained:
+        checkpoint = load_state_dict_from_url(
+            url='https://github.com/BlueDruddigon/VisTransformer/releases/download/0.1.1/vit_base_patch16_224.pth',
+            map_location='cpu', check_hash=True, progress=progress
+        )
+        model.load_state_dict(checkpoint['model'])
+    return model
+
+
+def vit_base_patch16_384(
+        *, pretrained: bool = False, progress: bool = True, **kwargs: Any
+) -> VisionTransformer:
+    model = _vision_transformer(
+        image_size=384,
+        patch_size=16,
+        num_layers=12,
+        num_heads=12,
+        hidden_dim=768,
+        mlp_dim=3072,
+        **kwargs,
+    )
+    if pretrained:
+        checkpoint = load_state_dict_from_url(
+            url='https://github.com/BlueDruddigon/VisTransformer/releases/download/0.1.1/vit_base_patch16_384.pth',
+            map_location='cpu', check_hash=True, progress=progress
+        )
+        model.load_state_dict(model.custom_load_state_dict(checkpoint['model']))
+    return model
 
 
 model_maps = {
-    'vit_t_16': vit_t_16,
-    'vit_s_16': vit_s_16,
-    'vit_b_16': vit_b_16,
+    'vit_tiny_patch16_224': vit_tiny_patch16_224,
+    'vit_small_patch16_224': vit_small_patch16_224,
+    'vit_base_patch16_224': vit_base_patch16_224,
+    'vit_base_patch16_384': vit_base_patch16_384,
 }
 
 
