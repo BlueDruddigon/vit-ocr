@@ -11,7 +11,7 @@ import torch.utils.data
 import validators
 from nltk.metrics.distance import edit_distance
 
-from dataset import AlignCollate, hierarchical_dataset
+from dataset_old import AlignCollate, hierarchical_dataset
 from utils import Average, get_args, TokenLabelConverter
 from vit import create_vit
 

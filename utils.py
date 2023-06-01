@@ -5,10 +5,10 @@ import torch
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-class TokenLabelConverter(object):
+class TokenLabelConverter:
     """ Convert between text-label and text-index """
 
-    def __init__(self, opt):
+    def __init__(self, opt: argparse.Namespace) -> None:
         # character (str): set of the possible characters.
         # [GO] for the start token of the attention decoder. [s] for end-of-sentence token.
         self.SPACE = '[s]'
@@ -28,7 +28,7 @@ class TokenLabelConverter(object):
         for i, t in enumerate(text):
             txt = [self.GO] + list(t) + [self.SPACE]
             txt = [self.dict[char] for char in txt]
-            batch_text[i][:len(txt)] = torch.LongTensor(txt)  # batch_text[:, 0] = [GO] token
+            batch_text[i][:len(txt)] = torch.LongTensor(txt)
         return batch_text.to(device)
 
     def decode(self, text_index, length):

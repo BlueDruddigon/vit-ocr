@@ -12,7 +12,7 @@ import torch.optim as optim
 import torch.utils.data
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
-from dataset import AlignCollate, Batch_Balanced_Dataset, hierarchical_dataset
+from dataset_old import AlignCollate, Batch_Balanced_Dataset, hierarchical_dataset
 from test import get_infer_model, validation
 from utils import Average, get_args, TokenLabelConverter
 from vit import create_vit
@@ -50,9 +50,10 @@ def train(opt):
     log.write('-' * 80 + '\n')
     log.close()
     """ model configuration """
-    converter = None
     if opt.transformer:
         converter = TokenLabelConverter(opt)
+    else:
+        converter = None
     opt.num_classes = len(converter.character)
 
     if opt.rgb:
@@ -127,7 +128,6 @@ def train(opt):
         cost = criterion(preds.view(-1, preds.shape[-1]), target.contiguous().view(-1))
 
         model.zero_grad()
-        cost.backward()
         cost.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
         optimizer.step()
