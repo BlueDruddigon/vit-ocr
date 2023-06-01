@@ -254,46 +254,6 @@ class VisionTransformer(nn.Module):
             nn.init.zeros_(self.heads.head.weight)
             nn.init.zeros_(self.heads.head.bias)
 
-    @staticmethod
-    def custom_load_state_dict(state_dict, n=12):
-        m = dict()
-        for k, v in state_dict.items():
-            if k == 'cls_token':
-                m['class_token'] = v
-            elif k == 'pos_embed':
-                m['encoder.pos_embedding'] = v
-            elif k == 'norm.weight':
-                m['encoder.ln.weight'] = v
-            elif k == 'norm.bias':
-                m['encoder.ln.bias'] = v
-            elif k == 'head.weight':
-                m['heads.head.weight'] = v
-            elif k == 'head.bias':
-                m['heads.head.bias'] = v
-            elif k == 'patch_embed.proj.weight':
-                m['conv_proj.weight'] = v
-            elif k == 'patch_embed.proj.bias':
-                m['conv_proj.bias'] = v
-
-        for i in range(n):
-            m[f'encoder.layers.encoder_layer_{i}.ln_1.weight'] = state_dict[f'blocks.{i}.norm1.weight']
-            m[f'encoder.layers.encoder_layer_{i}.ln_1.bias'] = state_dict[f'blocks.{i}.norm1.bias']
-            m[f'encoder.layers.encoder_layer_{i}.ln_2.weight'] = state_dict[f'blocks.{i}.norm2.weight']
-            m[f'encoder.layers.encoder_layer_{i}.ln_2.bias'] = state_dict[f'blocks.{i}.norm2.bias']
-            m[f'encoder.layers.encoder_layer_{i}.mlp.0.weight'] = state_dict[f'blocks.{i}.mlp.fc1.weight']
-            m[f'encoder.layers.encoder_layer_{i}.mlp.0.bias'] = state_dict[f'blocks.{i}.mlp.fc1.bias']
-            m[f'encoder.layers.encoder_layer_{i}.mlp.3.weight'] = state_dict[f'blocks.{i}.mlp.fc2.weight']
-            m[f'encoder.layers.encoder_layer_{i}.mlp.3.bias'] = state_dict[f'blocks.{i}.mlp.fc2.bias']
-            m[f'encoder.layers.encoder_layer_{i}.self_attention.in_proj_weight'] = \
-                state_dict[f'blocks.{i}.attn.qkv.weight']
-            m[f'encoder.layers.encoder_layer_{i}.self_attention.in_proj_bias'] = state_dict[f'blocks.{i}.attn.qkv.bias']
-            m[f'encoder.layers.encoder_layer_{i}.self_attention.out_proj.weight'] = \
-                state_dict[f'blocks.{i}.attn.proj.weight']
-            m[f'encoder.layers.encoder_layer_{i}.self_attention.out_proj.bias'] = state_dict[
-                f'blocks.{i}.attn.proj.bias']
-
-        return m
-
     def _process_input(self, x: torch.Tensor) -> torch.Tensor:
         n, _, h, w = x.shape
         p = self.patch_size
@@ -369,11 +329,11 @@ def vit_tiny_patch16_224(
     )
     if pretrained:
         checkpoint = load_state_dict_from_url(
-            url='https://github.com/BlueDruddigon/VisTransformer/releases/download/0.1.1/vit_tiny_patch16_224.pth',
+            url='https://github.com/BlueDruddigon/vit-ocr/releases/download/0.1.1/vit_tiny_patch16_224.pth',
             map_location='cpu',
             check_hash=True, progress=progress
         )
-        model.load_state_dict(checkpoint['model'])
+        model.load_state_dict(checkpoint)
     return model
 
 
@@ -390,11 +350,11 @@ def vit_small_patch16_224(
     )
     if pretrained:
         checkpoint = load_state_dict_from_url(
-            url='https://github.com/BlueDruddigon/VisTransformer/releases/download/0.1.1/vit_small_patch16_224.pth',
+            url='https://github.com/BlueDruddigon/vit-ocr/releases/download/0.1.1/vit_small_patch16_224.pth',
             map_location='cpu',
             check_hash=True, progress=progress
         )
-        model.load_state_dict(checkpoint['model'])
+        model.load_state_dict(checkpoint)
     return model
 
 
@@ -411,10 +371,10 @@ def vit_base_patch16_224(
     )
     if pretrained:
         checkpoint = load_state_dict_from_url(
-            url='https://github.com/BlueDruddigon/VisTransformer/releases/download/0.1.1/vit_base_patch16_224.pth',
+            url='https://github.com/BlueDruddigon/vit-ocr/releases/download/0.1.1/vit_base_patch16_224.pth',
             map_location='cpu', check_hash=True, progress=progress
         )
-        model.load_state_dict(checkpoint['model'])
+        model.load_state_dict(checkpoint)
     return model
 
 
@@ -432,10 +392,10 @@ def vit_base_patch16_384(
     )
     if pretrained:
         checkpoint = load_state_dict_from_url(
-            url='https://github.com/BlueDruddigon/VisTransformer/releases/download/0.1.1/vit_base_patch16_384.pth',
+            url='https://github.com/BlueDruddigon/vit-ocr/releases/download/0.1.1/vit_base_patch16_384.pth',
             map_location='cpu', check_hash=True, progress=progress
         )
-        model.load_state_dict(model.custom_load_state_dict(checkpoint['model']))
+        model.load_state_dict(checkpoint)
     return model
 
 
